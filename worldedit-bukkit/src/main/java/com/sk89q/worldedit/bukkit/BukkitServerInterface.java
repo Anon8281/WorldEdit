@@ -19,6 +19,7 @@
 
 package com.sk89q.worldedit.bukkit;
 
+import com.github.Anon8281.universalScheduler.scheduling.tasks.MyScheduledTask;
 import com.google.common.collect.Sets;
 import com.sk89q.bukkit.util.CommandInfo;
 import com.sk89q.bukkit.util.CommandRegistration;
@@ -120,7 +121,8 @@ public class BukkitServerInterface extends AbstractPlatform implements MultiUser
 
     @Override
     public int schedule(long delay, long period, Runnable task) {
-        return Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, task, delay, period);
+        WorldEditPlugin.getScheduler().scheduleSyncRepeatingTask(task, delay, period);
+        return 1; //Too large plugin for fast adaptation
     }
 
     @Override

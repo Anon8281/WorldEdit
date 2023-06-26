@@ -11,6 +11,7 @@ applyShadowConfiguration()
 repositories {
     maven { url = uri("https://hub.spigotmc.org/nexus/content/groups/public") }
     maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
+    maven { url = uri("https://jitpack.io") }
 }
 
 val localImplementation = configurations.create("localImplementation") {
@@ -60,6 +61,7 @@ dependencies {
     "compileOnly"("com.sk89q:dummypermscompat:1.10")
     "implementation"("org.bstats:bstats-bukkit:2.2.1")
     "implementation"("it.unimi.dsi:fastutil")
+    "implementation"("com.github.Anon8281:UniversalScheduler:0.1.3")
     "testImplementation"("org.mockito:mockito-core:1.9.0-rc1")
 
     project.project(":worldedit-bukkit:adapters").subprojects.forEach {
@@ -98,10 +100,12 @@ tasks.named<ShadowJar>("shadowJar") {
         include(dependency("org.bstats:"))
         include(dependency("io.papermc:paperlib"))
         include(dependency("it.unimi.dsi:fastutil"))
+        include(dependency("com.github.Anon8281:"))
 
         relocate("org.bstats", "com.sk89q.worldedit.bstats")
         relocate("io.papermc.lib", "com.sk89q.worldedit.bukkit.paperlib")
         relocate("it.unimi.dsi.fastutil", "com.sk89q.worldedit.bukkit.fastutil")
+        relocate("com.github.Anon8281.universalScheduler", "com.sk89q.worldedit.bukkit.universalScheduler")
     }
 }
 

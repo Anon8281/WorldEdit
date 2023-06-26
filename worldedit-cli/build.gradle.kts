@@ -6,6 +6,11 @@ plugins {
 
 applyPlatformAndCoreConfiguration()
 applyShadowConfiguration()
+
+repositories {
+    maven { url = uri("https://jitpack.io") }
+}
+
 addJarManifest(
     WorldEditKind.Standalone("com.sk89q.worldedit.cli.CLIWorldEdit"),
     extraAttributes = mapOf(

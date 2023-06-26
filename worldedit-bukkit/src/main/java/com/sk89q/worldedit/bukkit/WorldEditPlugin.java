@@ -19,6 +19,8 @@
 
 package com.sk89q.worldedit.bukkit;
 
+import com.github.Anon8281.universalScheduler.UniversalScheduler;
+import com.github.Anon8281.universalScheduler.scheduling.schedulers.TaskScheduler;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.sk89q.bukkit.util.ClassSourceValidator;
@@ -115,6 +117,7 @@ public class WorldEditPlugin extends JavaPlugin implements TabCompleter {
     private static final Logger LOGGER = LogManagerCompat.getLogger();
     public static final String CUI_PLUGIN_CHANNEL = "worldedit:cui";
     private static WorldEditPlugin INSTANCE;
+    private static TaskScheduler SCHEDULER;
     private static final int BSTATS_PLUGIN_ID = 3328;
 
     private final SimpleLifecycled<BukkitImplAdapter> adapter =
@@ -125,7 +128,7 @@ public class WorldEditPlugin extends JavaPlugin implements TabCompleter {
     @Override
     public void onLoad() {
         INSTANCE = this;
-
+        SCHEDULER = UniversalScheduler.getScheduler(INSTANCE);
         //noinspection ResultOfMethodCallIgnored
         getDataFolder().mkdirs();
 
@@ -321,7 +324,7 @@ public class WorldEditPlugin extends JavaPlugin implements TabCompleter {
         if (config != null) {
             config.unload();
         }
-        this.getServer().getScheduler().cancelTasks(this);
+        getScheduler().cancelTasks(this);
     }
 
     /**
@@ -568,5 +571,9 @@ public class WorldEditPlugin extends JavaPlugin implements TabCompleter {
             event.setCompletions(CommandUtil.fixSuggestions(buffer, suggestEvent.getSuggestions()));
             event.setHandled(true);
         }
+    }
+
+    public static TaskScheduler getScheduler() {
+        return SCHEDULER;
     }
 }

@@ -5,6 +5,10 @@ plugins {
     application
 }
 
+repositories {
+    maven { url = uri("https://jitpack.io") }
+}
+
 applyCommonConfiguration()
 
 tasks.withType<KotlinCompile> {

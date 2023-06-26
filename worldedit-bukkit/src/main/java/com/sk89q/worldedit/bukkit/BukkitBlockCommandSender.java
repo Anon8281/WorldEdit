@@ -156,7 +156,7 @@ public class BukkitBlockCommandSender extends AbstractCommandBlockActor {
                     updateActive();
                 } else {
                     // we should update it eventually
-                    Bukkit.getScheduler().callSyncMethod(plugin,
+                    WorldEditPlugin.getScheduler().callSyncMethod(
                         () -> {
                             updateActive();
                             return null;

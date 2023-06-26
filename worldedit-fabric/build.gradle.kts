@@ -40,6 +40,7 @@ repositories {
             includeGroupByRegex("com\\.mojang\\..*")
         }
     }
+    maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {

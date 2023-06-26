@@ -33,6 +33,7 @@ repositories {
     }
     remove(forgeMaven)
     addFirst(forgeMaven)
+    maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {

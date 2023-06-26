@@ -12,6 +12,7 @@ applyShadowConfiguration()
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://jitpack.io") }
 }
 
 minecraft {
