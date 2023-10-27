@@ -20,13 +20,12 @@
 package com.sk89q.worldedit.world.block;
 
 import com.sk89q.jnbt.CompoundTag;
-import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.blocks.TileEntityBlock;
 import com.sk89q.worldedit.registry.state.Property;
 import com.sk89q.worldedit.util.concurrency.LazyReference;
 import org.enginehub.linbus.format.snbt.LinStringIO;
-import org.enginehub.linbus.stream.exception.NbtWriteException;
 import org.enginehub.linbus.tree.LinCompoundTag;
+import org.enginehub.linbus.tree.LinStringTag;
 import org.enginehub.linbus.tree.LinTagType;
 
 import java.util.Map;
@@ -121,7 +120,8 @@ public class BaseBlock implements BlockStateHolder<BaseBlock>, TileEntityBlock {
         if (nbtData == null) {
             return "";
         }
-        return nbtData.getValue().getTag("id", LinTagType.stringTag()).value();
+        LinStringTag idTag = nbtData.getValue().findTag("id", LinTagType.stringTag());
+        return idTag != null ? idTag.value() : "";
     }
 
     @Nullable
@@ -140,14 +140,12 @@ public class BaseBlock implements BlockStateHolder<BaseBlock>, TileEntityBlock {
      */
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof BaseBlock)) {
+        if (!(o instanceof BaseBlock otherBlock)) {
             if (nbtData == null && o instanceof BlockStateHolder) {
                 return Objects.equals(toImmutableState(), ((BlockStateHolder<?>) o).toImmutableState());
             }
             return false;
         }
-
-        final BaseBlock otherBlock = (BaseBlock) o;
 
         return this.blockState.equalsFuzzy(otherBlock.blockState) && Objects.equals(getNbt(), otherBlock.getNbt());
     }

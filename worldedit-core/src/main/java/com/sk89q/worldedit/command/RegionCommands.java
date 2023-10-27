@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.sk89q.worldedit.EditSession;
 import com.sk89q.worldedit.LocalSession;
+import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.WorldEditException;
 import com.sk89q.worldedit.command.util.CommandPermissions;
 import com.sk89q.worldedit.command.util.CommandPermissionsConditionGenerator;
@@ -135,12 +136,11 @@ public class RegionCommands {
             return 0;
         }
         checkCommandArgument(thickness >= 0, "Thickness must be >= 0");
-
+        WorldEdit.getInstance().checkMaxRadius(thickness);
 
         List<BlockVector3> vectors;
 
-        if (region instanceof CuboidRegion) {
-            CuboidRegion cuboidRegion = (CuboidRegion) region;
+        if (region instanceof CuboidRegion cuboidRegion) {
             vectors = ImmutableList.of(cuboidRegion.getPos1(), cuboidRegion.getPos2());
         } else {
             ConvexPolyhedralRegion convexRegion = (ConvexPolyhedralRegion) region;
@@ -168,13 +168,13 @@ public class RegionCommands {
                          int thickness,
                      @Switch(name = 'h', desc = "Generate only a shell")
                          boolean shell) throws WorldEditException {
-        if (!(region instanceof ConvexPolyhedralRegion)) {
+        if (!(region instanceof ConvexPolyhedralRegion cpregion)) {
             actor.printError(TranslatableComponent.of("worldedit.curve.invalid-type"));
             return 0;
         }
         checkCommandArgument(thickness >= 0, "Thickness must be >= 0");
+        WorldEdit.getInstance().checkMaxRadius(thickness);
 
-        ConvexPolyhedralRegion cpregion = (ConvexPolyhedralRegion) region;
         List<BlockVector3> vectors = new ArrayList<>(cpregion.getVertices());
 
         int blocksChanged = editSession.drawSpline(pattern, vectors, 0, 0, 0, 10, thickness, !shell);

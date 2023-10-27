@@ -36,6 +36,8 @@ import com.sk89q.worldedit.command.ToolCommands
 import com.sk89q.worldedit.command.ToolUtilCommands
 import com.sk89q.worldedit.command.UtilityCommands
 import com.sk89q.worldedit.command.util.PermissionCondition
+import com.sk89q.worldedit.event.platform.PlatformReadyEvent
+import com.sk89q.worldedit.event.platform.PlatformsRegisteredEvent
 import com.sk89q.worldedit.internal.command.CommandUtil
 import com.sk89q.worldedit.util.formatting.text.TextComponent
 import org.enginehub.piston.Command
@@ -207,7 +209,7 @@ Other Permissions
     ``worldedit.inventory.unrestricted``,"Override the ``use-inventory`` option if enabled in the :doc:`configuration <config>`."
     ``worldedit.override.bedrock``,"Allows breaking of bedrock with the super-pickaxe tool."
     ``worldedit.override.data-cycler``,"Allows cycling non-whitelisted blocks with the data cycler tool."
-    ``worldedit.setnbt``,"Allows setting `extra data <https://minecraft.gamepedia.com/Block_entity>`_ on blocks (such as signs, chests, etc)."
+    ``worldedit.setnbt``,"Allows setting `extra data <https://minecraft.wiki/w/Block_entity>`_ on blocks (such as signs, chests, etc)."
     ``worldedit.report.pastebin``,"Allows uploading report files to pastebin automatically for the ``/worldedit report`` :doc:`command <commands>`."
     ``worldedit.scripting.execute.<filename>``,"Allows using the CraftScript with the given filename."
 """.trim())
@@ -337,7 +339,10 @@ Other Permissions
         @JvmStatic
         fun main(args: Array<String>) {
             try {
-                WorldEdit.getInstance().platformManager.register(DocumentationPlatform())
+                val plat = DocumentationPlatform()
+                WorldEdit.getInstance().platformManager.register(plat)
+                WorldEdit.getInstance().eventBus.post(PlatformReadyEvent(plat))
+                WorldEdit.getInstance().eventBus.post(PlatformsRegisteredEvent())
                 val printer = DocumentationPrinter()
 
                 printer.writeAllCommands()

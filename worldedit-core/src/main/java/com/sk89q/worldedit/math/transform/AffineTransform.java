@@ -26,35 +26,18 @@ import com.sk89q.worldedit.math.Vector3;
 /**
  * An affine transform.
  *
- * <p>This class is from the
+ * <p>This class is based on the one from the
  * <a href="http://geom-java.sourceforge.net/index.html">JavaGeom project</a>,
  * which is licensed under LGPL v2.1.</p>
  */
-public class AffineTransform implements Transform {
-
-    /**
-     * coefficients for x coordinate.
-     */
-    private final double m00;
-    private final double m01;
-    private final double m02;
-    private final double m03;
-
-    /**
-     * coefficients for y coordinate.
-     */
-    private final double m10;
-    private final double m11;
-    private final double m12;
-    private final double m13;
-
-    /**
-     * coefficients for z coordinate.
-     */
-    private final double m20;
-    private final double m21;
-    private final double m22;
-    private final double m23;
+public record AffineTransform(
+    // coefficients for x coordinate.
+    double m00, double m01, double m02, double m03,
+    // coefficients for y coordinate.
+    double m10, double m11, double m12, double m13,
+    // coefficients for z coordinate.
+    double m20, double m21, double m22, double m23
+) implements Transform {
 
     // ===================================================================
     // constructors
@@ -64,58 +47,42 @@ public class AffineTransform implements Transform {
      */
     public AffineTransform() {
         // init to identity matrix
-        m00 = m11 = m22 = 1;
-        m01 = m02 = m03 = 0;
-        m10 = m12 = m13 = 0;
-        m20 = m21 = m23 = 0;
+        this(
+            1, 0, 0, 0,
+            0, 1, 0, 0,
+            0, 0, 1, 0
+        );
     }
 
-    public AffineTransform(double[] coefs) {
-        if (coefs.length == 9) {
-            m00 = coefs[0];
-            m01 = coefs[1];
-            m02 = coefs[2];
-            m10 = coefs[3];
-            m11 = coefs[4];
-            m12 = coefs[5];
-            m20 = coefs[6];
-            m21 = coefs[7];
-            m22 = coefs[8];
-            m03 = m13 = m23 = 0;
-        } else if (coefs.length == 12) {
-            m00 = coefs[0];
-            m01 = coefs[1];
-            m02 = coefs[2];
-            m03 = coefs[3];
-            m10 = coefs[4];
-            m11 = coefs[5];
-            m12 = coefs[6];
-            m13 = coefs[7];
-            m20 = coefs[8];
-            m21 = coefs[9];
-            m22 = coefs[10];
-            m23 = coefs[11];
-        } else {
-            throw new IllegalArgumentException(
-                    "Input array must have 9 or 12 elements");
+    private static double indexCoeffs(double[] coeffs, int destIndex) {
+        if (coeffs.length == 12) {
+            return coeffs[destIndex];
         }
+        if (coeffs.length != 9) {
+            throw new IllegalArgumentException("Input array must have 9 or 12 elements");
+        }
+        if (destIndex > 0 && destIndex % 3 == 0) {
+            // Length 9 has holes in m03, m13, m23
+            return 0;
+        }
+        // Adjust for missing holes
+        destIndex -= destIndex / 3;
+        return coeffs[destIndex];
     }
 
-    public AffineTransform(double xx, double yx, double zx, double tx,
-                           double xy, double yy, double zy, double ty, double xz, double yz,
-                           double zz, double tz) {
-        m00 = xx;
-        m01 = yx;
-        m02 = zx;
-        m03 = tx;
-        m10 = xy;
-        m11 = yy;
-        m12 = zy;
-        m13 = ty;
-        m20 = xz;
-        m21 = yz;
-        m22 = zz;
-        m23 = tz;
+    /**
+     * Creates a new affine transform from the given coefficients.
+     *
+     * @param coefs array of 9 to 12 coefficients
+     * @deprecated Use {@link #AffineTransform(double, double, double, double, double, double, double, double, double, double, double, double)} instead
+     */
+    @Deprecated
+    public AffineTransform(double[] coefs) {
+        this(
+            indexCoeffs(coefs, 0), indexCoeffs(coefs, 1), indexCoeffs(coefs, 2), indexCoeffs(coefs, 3),
+            indexCoeffs(coefs, 4), indexCoeffs(coefs, 5), indexCoeffs(coefs, 6), indexCoeffs(coefs, 7),
+            indexCoeffs(coefs, 8), indexCoeffs(coefs, 9), indexCoeffs(coefs, 10), indexCoeffs(coefs, 11)
+        );
     }
 
     // ===================================================================
@@ -152,6 +119,9 @@ public class AffineTransform implements Transform {
      */
     @Override
     public AffineTransform inverse() {
+        if (isIdentity()) {
+            return this;
+        }
         double det = this.determinant();
         return new AffineTransform(
                 (m11 * m22 - m21 * m12) / det,
@@ -176,28 +146,44 @@ public class AffineTransform implements Transform {
 
     /**
      * Returns the affine transform created by applying first the affine
+     * transform given by the parameters, then this affine transform.
+     *
+     * @return the composition this * that
+     */
+    public AffineTransform concatenate(double o00, double o01, double o02, double o03,
+                                       double o10, double o11, double o12, double o13,
+                                       double o20, double o21, double o22, double o23) {
+        double n00 = m00 * o00 + m01 * o10 + m02 * o20;
+        double n01 = m00 * o01 + m01 * o11 + m02 * o21;
+        double n02 = m00 * o02 + m01 * o12 + m02 * o22;
+        double n03 = m00 * o03 + m01 * o13 + m02 * o23 + m03;
+        double n10 = m10 * o00 + m11 * o10 + m12 * o20;
+        double n11 = m10 * o01 + m11 * o11 + m12 * o21;
+        double n12 = m10 * o02 + m11 * o12 + m12 * o22;
+        double n13 = m10 * o03 + m11 * o13 + m12 * o23 + m13;
+        double n20 = m20 * o00 + m21 * o10 + m22 * o20;
+        double n21 = m20 * o01 + m21 * o11 + m22 * o21;
+        double n22 = m20 * o02 + m21 * o12 + m22 * o22;
+        double n23 = m20 * o03 + m21 * o13 + m22 * o23 + m23;
+        return new AffineTransform(
+            n00, n01, n02, n03,
+            n10, n11, n12, n13,
+            n20, n21, n22, n23);
+    }
+
+    /**
+     * Returns the affine transform created by applying first the affine
      * transform given by {@code that}, then this affine transform.
      *
      * @param that the transform to apply first
      * @return the composition this * that
      */
     public AffineTransform concatenate(AffineTransform that) {
-        double n00 = m00 * that.m00 + m01 * that.m10 + m02 * that.m20;
-        double n01 = m00 * that.m01 + m01 * that.m11 + m02 * that.m21;
-        double n02 = m00 * that.m02 + m01 * that.m12 + m02 * that.m22;
-        double n03 = m00 * that.m03 + m01 * that.m13 + m02 * that.m23 + m03;
-        double n10 = m10 * that.m00 + m11 * that.m10 + m12 * that.m20;
-        double n11 = m10 * that.m01 + m11 * that.m11 + m12 * that.m21;
-        double n12 = m10 * that.m02 + m11 * that.m12 + m12 * that.m22;
-        double n13 = m10 * that.m03 + m11 * that.m13 + m12 * that.m23 + m13;
-        double n20 = m20 * that.m00 + m21 * that.m10 + m22 * that.m20;
-        double n21 = m20 * that.m01 + m21 * that.m11 + m22 * that.m21;
-        double n22 = m20 * that.m02 + m21 * that.m12 + m22 * that.m22;
-        double n23 = m20 * that.m03 + m21 * that.m13 + m22 * that.m23 + m23;
-        return new AffineTransform(
-                n00, n01, n02, n03,
-                n10, n11, n12, n13,
-                n20, n21, n22, n23);
+        return concatenate(
+            that.m00, that.m01, that.m02, that.m03,
+            that.m10, that.m11, that.m12, that.m13,
+            that.m20, that.m21, that.m22, that.m23
+        );
     }
 
     /**
@@ -235,37 +221,37 @@ public class AffineTransform implements Transform {
     }
 
     public AffineTransform translate(double x, double y, double z) {
-        return concatenate(new AffineTransform(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z));
+        return concatenate(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z);
     }
 
     public AffineTransform rotateX(double theta) {
         double cot = MathUtils.dCos(theta);
         double sit = MathUtils.dSin(theta);
         return concatenate(
-                new AffineTransform(
-                        1, 0, 0, 0,
-                        0, cot, -sit, 0,
-                        0, sit, cot, 0));
+            1, 0, 0, 0,
+            0, cot, -sit, 0,
+            0, sit, cot, 0
+        );
     }
 
     public AffineTransform rotateY(double theta) {
         double cot = MathUtils.dCos(theta);
         double sit = MathUtils.dSin(theta);
         return concatenate(
-                new AffineTransform(
-                        cot, 0, sit, 0,
-                        0, 1, 0, 0,
-                        -sit, 0, cot, 0));
+            cot, 0, sit, 0,
+            0, 1, 0, 0,
+            -sit, 0, cot, 0
+        );
     }
 
     public AffineTransform rotateZ(double theta) {
         double cot = MathUtils.dCos(theta);
         double sit = MathUtils.dSin(theta);
         return concatenate(
-                new AffineTransform(
-                        cot, -sit, 0, 0,
-                        sit, cot, 0, 0,
-                        0, 0, 1, 0));
+            cot, -sit, 0, 0,
+            sit, cot, 0, 0,
+            0, 0, 1, 0
+        );
     }
 
     public AffineTransform scale(double s) {
@@ -273,7 +259,7 @@ public class AffineTransform implements Transform {
     }
 
     public AffineTransform scale(double sx, double sy, double sz) {
-        return concatenate(new AffineTransform(sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, sz, 0));
+        return concatenate(sx, 0, 0, 0, 0, sy, 0, 0, 0, 0, sz, 0);
     }
 
     public AffineTransform scale(Vector3 vec) {
@@ -294,8 +280,8 @@ public class AffineTransform implements Transform {
 
     @Override
     public Transform combine(Transform other) {
-        if (other instanceof AffineTransform) {
-            return concatenate((AffineTransform) other);
+        if (other instanceof AffineTransform otherTransform) {
+            return concatenate(otherTransform);
         } else {
             return new CombinedTransform(this, other);
         }

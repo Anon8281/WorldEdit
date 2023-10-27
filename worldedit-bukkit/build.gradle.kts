@@ -11,7 +11,6 @@ applyShadowConfiguration()
 repositories {
     maven { url = uri("https://hub.spigotmc.org/nexus/content/groups/public") }
     maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
-    maven { url = uri("https://jitpack.io") }
 }
 
 val localImplementation = configurations.create("localImplementation") {
@@ -61,7 +60,6 @@ dependencies {
     "compileOnly"("com.sk89q:dummypermscompat:1.10")
     "implementation"("org.bstats:bstats-bukkit:2.2.1")
     "implementation"("it.unimi.dsi:fastutil")
-    "implementation"("com.github.Anon8281:UniversalScheduler:0.1.3")
     "testImplementation"("org.mockito:mockito-core:1.9.0-rc1")
 
     project.project(":worldedit-bukkit:adapters").subprojects.forEach {
@@ -80,15 +78,7 @@ tasks.named<Copy>("processResources") {
 addJarManifest(WorldEditKind.Plugin, includeClasspath = true)
 
 tasks.named<ShadowJar>("shadowJar") {
-    dependsOn(project.project(":worldedit-bukkit:adapters").subprojects.map { it.tasks.named("assemble") })
-    from(Callable {
-        adapters.resolve()
-            .map { f ->
-                zipTree(f).matching {
-                    exclude("META-INF/")
-                }
-            }
-    })
+    configurations.add(adapters)
     dependencies {
         // In tandem with not bundling log4j, we shouldn't relocate base package here.
         // relocate("org.apache.logging", "com.sk89q.worldedit.log4j")
@@ -100,12 +90,22 @@ tasks.named<ShadowJar>("shadowJar") {
         include(dependency("org.bstats:"))
         include(dependency("io.papermc:paperlib"))
         include(dependency("it.unimi.dsi:fastutil"))
-        include(dependency("com.github.Anon8281:"))
+        include(dependency("com.sk89q.lib:jlibnoise"))
+
+        exclude(dependency("$group:$name"))
 
         relocate("org.bstats", "com.sk89q.worldedit.bstats")
         relocate("io.papermc.lib", "com.sk89q.worldedit.bukkit.paperlib")
         relocate("it.unimi.dsi.fastutil", "com.sk89q.worldedit.bukkit.fastutil")
-        relocate("com.github.Anon8281.universalScheduler", "com.sk89q.worldedit.bukkit.universalScheduler")
+        relocate("net.royawesome.jlibnoise", "com.sk89q.worldedit.jlibnoise")
+    }
+    project.project(":worldedit-bukkit:adapters").subprojects.forEach {
+        dependencies {
+            include(dependency("${it.group}:${it.name}"))
+        }
+        minimize {
+            exclude(dependency("${it.group}:${it.name}"))
+        }
     }
 }
 

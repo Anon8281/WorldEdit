@@ -87,9 +87,7 @@ public class CylinderRegionSelector implements RegionSelector, CUIRegion {
     public CylinderRegionSelector(RegionSelector oldSelector) {
         this(checkNotNull(oldSelector).getIncompleteRegion().getWorld());
 
-        if (oldSelector instanceof CylinderRegionSelector) {
-            final CylinderRegionSelector cylSelector = (CylinderRegionSelector) oldSelector;
-
+        if (oldSelector instanceof CylinderRegionSelector cylSelector) {
             region = new CylinderRegion(cylSelector.region);
             selectedCenter = cylSelector.selectedCenter;
             selectedRadius = cylSelector.selectedRadius;
@@ -247,6 +245,8 @@ public class CylinderRegionSelector implements RegionSelector, CUIRegion {
     @Override
     public void clear() {
         region = new CylinderRegion(region.getWorld());
+        selectedCenter = false;
+        selectedRadius = false;
     }
 
     @Override

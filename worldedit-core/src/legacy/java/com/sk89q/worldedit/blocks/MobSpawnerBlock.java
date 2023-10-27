@@ -19,16 +19,13 @@
 
 package com.sk89q.worldedit.blocks;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.sk89q.jnbt.CompoundTag;
-import com.sk89q.jnbt.IntTag;
 import com.sk89q.jnbt.ListTag;
 import com.sk89q.jnbt.NBTUtils;
 import com.sk89q.jnbt.ShortTag;
 import com.sk89q.jnbt.StringTag;
 import com.sk89q.jnbt.Tag;
-import com.sk89q.worldedit.world.block.BaseBlock;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.storage.InvalidFormatException;
 
@@ -42,7 +39,7 @@ import java.util.Map;
  *     deprecated for removal without replacement
  */
 @Deprecated
-public class MobSpawnerBlock extends BaseBlock {
+public class MobSpawnerBlock extends LegacyBaseBlockWrapper {
 
     private String mobType;
     private short delay = -1;
@@ -136,15 +133,11 @@ public class MobSpawnerBlock extends BaseBlock {
         values.put("MaxNearbyEntities", new ShortTag(maxNearbyEntities));
         values.put("RequiredPlayerRange", new ShortTag(requiredPlayerRange));
         if (spawnData == null) {
-            values.put("SpawnData", new CompoundTag(ImmutableMap.of("id", new StringTag(mobType))));
+            values.put("SpawnData", new CompoundTag(ImmutableMap.of("entity", new CompoundTag(ImmutableMap.of("id", new StringTag(mobType))))));
         } else {
             values.put("SpawnData", new CompoundTag(spawnData.getValue()));
         }
-        if (spawnPotentials == null) {
-            values.put("SpawnPotentials", new ListTag(CompoundTag.class, ImmutableList.of(
-                    new CompoundTag(ImmutableMap.of("Weight", new IntTag(1), "Entity",
-                            new CompoundTag(ImmutableMap.of("id", new StringTag(mobType))))))));
-        } else {
+        if (spawnPotentials != null) {
             values.put("SpawnPotentials", new ListTag(CompoundTag.class, spawnPotentials.getValue()));
         }
 

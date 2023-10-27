@@ -136,7 +136,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkArgument;
@@ -753,16 +752,12 @@ public class EditSession implements Extent, AutoCloseable {
      * @throws WorldEditException thrown on a set error
      */
     public <B extends BlockStateHolder<B>> boolean setBlock(BlockVector3 position, B block, Stage stage) throws WorldEditException {
-        switch (stage) {
-            case BEFORE_HISTORY:
-                return bypassNone.setBlock(position, block);
-            case BEFORE_CHANGE:
-                return bypassHistory.setBlock(position, block);
-            case BEFORE_REORDER:
-                return bypassReorderHistory.setBlock(position, block);
-            default:
-                throw new RuntimeException("New enum entry added that is unhandled here");
-        }
+        return switch (stage) {
+            case BEFORE_HISTORY -> bypassNone.setBlock(position, block);
+            case BEFORE_CHANGE -> bypassHistory.setBlock(position, block);
+            case BEFORE_REORDER -> bypassReorderHistory.setBlock(position, block);
+            default -> throw new RuntimeException("New enum entry added that is unhandled here");
+        };
     }
 
     /**
@@ -1045,10 +1040,17 @@ public class EditSession implements Extent, AutoCloseable {
         checkArgument(radius >= 0, "radius >= 0");
         checkArgument(depth >= 1, "depth >= 1");
 
+        // Avoid int overflow (negative coordinate space allows for overflow back round to positive if the depth is large enough).
+        // Depth is always 1 or greater, thus the lower bound should always be <= origin y.
+        int lowerBound = origin.getBlockY() - depth + 1;
+        if (lowerBound > origin.getBlockY()) {
+            lowerBound = Integer.MIN_VALUE;
+        }
+
         MaskIntersection mask = new MaskIntersection(
                 new RegionMask(new EllipsoidRegion(null, origin, Vector3.at(radius, radius, radius))),
                 new BoundedHeightMask(
-                        Math.max(origin.getBlockY() - depth + 1, getWorld().getMinY()),
+                        Math.max(lowerBound, getWorld().getMinY()),
                         Math.min(getWorld().getMaxY(), origin.getBlockY())),
                 Masks.negate(new ExistingBlockMask(this)));
 
@@ -1777,6 +1779,80 @@ public class EditSession implements Extent, AutoCloseable {
     }
 
     /**
+     * Makes a cone.
+     *
+     * @param pos Center of the cone
+     * @param block The block pattern to use
+     * @param radiusX The cone's largest north/south extent
+     * @param radiusZ The cone's largest east/west extent
+     * @param height The cone's up/down extent. If negative, extend downward.
+     * @param filled If false, only a shell will be generated.
+     * @param thickness The cone's wall thickness, if it's hollow.
+     * @return number of blocks changed
+     * @throws MaxChangedBlocksException thrown if too many blocks are changed
+     */
+    public int makeCone(BlockVector3 pos, Pattern block, double radiusX, double radiusZ, int height, boolean filled,
+                        double thickness) throws MaxChangedBlocksException {
+        int affected = 0;
+
+        final int ceilRadiusX = (int) Math.ceil(radiusX);
+        final int ceilRadiusZ = (int) Math.ceil(radiusZ);
+        final double radiusXPow = Math.pow(radiusX, 2);
+        final double radiusZPow = Math.pow(radiusZ, 2);
+        final double heightPow = Math.pow(height, 2);
+
+        for (int y = 0; y < height; ++y) {
+            double ySquaredMinusHeightOverHeightSquared = Math.pow(y - height, 2) / heightPow;
+
+            forX:
+            for (int x = 0; x <= ceilRadiusX; ++x) {
+                double xSquaredOverRadiusX = Math.pow(x, 2) / radiusXPow;
+
+                for (int z = 0; z <= ceilRadiusZ; ++z) {
+                    double zSquaredOverRadiusZ = Math.pow(z, 2) / radiusZPow;
+                    double distanceFromOriginMinusHeightSquared = xSquaredOverRadiusX + zSquaredOverRadiusZ
+                        - ySquaredMinusHeightOverHeightSquared;
+
+                    if (distanceFromOriginMinusHeightSquared > 1) {
+                        if (z == 0) {
+                            break forX;
+                        }
+                        break;
+                    }
+
+                    if (!filled) {
+                        double xNext = Math.pow(x + thickness, 2) / radiusXPow
+                            + zSquaredOverRadiusZ - ySquaredMinusHeightOverHeightSquared;
+                        double yNext = xSquaredOverRadiusX + zSquaredOverRadiusZ
+                            - Math.pow(y + thickness - height, 2) / heightPow;
+                        double zNext = xSquaredOverRadiusX + Math.pow(z + thickness, 2)
+                            / radiusZPow - ySquaredMinusHeightOverHeightSquared;
+                        if (xNext <= 0 && zNext <= 0 && (yNext <= 0 && y + thickness != height)) {
+                            continue;
+                        }
+                    }
+
+                    if (distanceFromOriginMinusHeightSquared <= 0) {
+                        if (setBlock(pos.add(x, y, z), block)) {
+                            ++affected;
+                        }
+                        if (setBlock(pos.add(-x, y, z), block)) {
+                            ++affected;
+                        }
+                        if (setBlock(pos.add(x, y, -z), block)) {
+                            ++affected;
+                        }
+                        if (setBlock(pos.add(-x, y, -z), block)) {
+                            ++affected;
+                        }
+                    }
+                }
+            }
+        }
+        return affected;
+    }
+
+    /**
     * Makes a sphere.
     *
     * @param pos Center of the sphere or ellipsoid
@@ -2283,9 +2359,10 @@ public class EditSession implements Extent, AutoCloseable {
                 } catch (ExpressionTimeoutException e) {
                     timedOut[0] = timedOut[0] + 1;
                     return null;
+                } catch (RuntimeException e) {
+                    throw e;
                 } catch (Exception e) {
-                    LOGGER.warn("Failed to create shape", e);
-                    return null;
+                    throw new RuntimeException(e);
                 }
             }
         };
@@ -2438,8 +2515,8 @@ public class EditSession implements Extent, AutoCloseable {
             }
         }
 
+        final Set<BlockVector3> newOutside = new HashSet<>();
         for (int i = 1; i < thickness; ++i) {
-            final Set<BlockVector3> newOutside = new HashSet<>();
             outer: for (BlockVector3 position : region) {
                 for (BlockVector3 recurseDirection : recurseDirections) {
                     BlockVector3 neighbor = position.add(recurseDirection);
@@ -2452,6 +2529,7 @@ public class EditSession implements Extent, AutoCloseable {
             }
 
             outside.addAll(newOutside);
+            newOutside.clear();
         }
 
         outer: for (BlockVector3 position : region) {
@@ -2506,7 +2584,7 @@ public class EditSession implements Extent, AutoCloseable {
 
         Set<BlockVector3> vset = new HashSet<>();
 
-        for (int i = 0; vectors.size() != 0 && i < vectors.size() - 1; i++) {
+        for (int i = 0; !vectors.isEmpty() && i < vectors.size() - 1; i++) {
             BlockVector3 pos1 = vectors.get(i);
             BlockVector3 pos2 = vectors.get(i + 1);
 
@@ -2610,17 +2688,10 @@ public class EditSession implements Extent, AutoCloseable {
         return setBlocks(vset, pattern);
     }
 
-    private static double hypot(double... pars) {
-        double sum = 0;
-        for (double d : pars) {
-            sum += Math.pow(d, 2);
-        }
-        return Math.sqrt(sum);
-    }
-
     private static Set<BlockVector3> getBallooned(Set<BlockVector3> vset, double radius) {
         Set<BlockVector3> returnset = new HashSet<>();
         int ceilrad = (int) Math.ceil(radius);
+        double radiusSquare = Math.pow(radius, 2);
 
         for (BlockVector3 v : vset) {
             int tipx = v.getBlockX();
@@ -2630,7 +2701,7 @@ public class EditSession implements Extent, AutoCloseable {
             for (int loopx = tipx - ceilrad; loopx <= tipx + ceilrad; loopx++) {
                 for (int loopy = tipy - ceilrad; loopy <= tipy + ceilrad; loopy++) {
                     for (int loopz = tipz - ceilrad; loopz <= tipz + ceilrad; loopz++) {
-                        if (hypot(loopx - tipx, loopy - tipy, loopz - tipz) <= radius) {
+                        if (lengthSq(loopx - tipx, loopy - tipy, loopz - tipz) <= radiusSquare) {
                             returnset.add(BlockVector3.at(loopx, loopy, loopz));
                         }
                     }

@@ -25,7 +25,6 @@ import com.sk89q.worldedit.MaxChangedBlocksException;
 import com.sk89q.worldedit.function.mask.Mask;
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.Region;
-import com.sk89q.worldedit.registry.state.IntegerProperty;
 import com.sk89q.worldedit.registry.state.Property;
 import com.sk89q.worldedit.world.block.BlockState;
 import com.sk89q.worldedit.world.block.BlockTypes;
@@ -107,8 +106,11 @@ public class SnowHeightMap {
         float[] newData = data.clone();
 
         for (int i = 0; i < iterations; ++i) {
-            // add an offset from 0.0625F to the values (snowlayer half)
-            newData = filter.filter(newData, width, height, 0.0625F);
+            newData = filter.filter(newData, width, height, 0);
+        }
+        // add an offset from 0.0625F to the values (half snowlayer)
+        for (int i = 0; i < newData.length; ++i) {
+            newData[i] = newData[i] + 0.0625F;
         }
         return newData;
     }

@@ -12,11 +12,11 @@ plugins {
 applyPlatformAndCoreConfiguration(javaRelease = 17)
 applyShadowConfiguration()
 
-val minecraftVersion = "1.20"
+val minecraftVersion = "1.20.2"
 val nextMajorMinecraftVersion: String = minecraftVersion.split('.').let { (useless, major) ->
     "$useless.${major.toInt() + 1}"
 }
-val forgeVersion = "46.0.1"
+val forgeVersion = "48.0.20"
 
 val apiClasspath = configurations.create("apiClasspath") {
     isCanBeResolved = true
@@ -169,9 +169,11 @@ addJarManifest(WorldEditKind.Mod, includeClasspath = false)
 tasks.named<ShadowJar>("shadowJar") {
     dependencies {
         relocate("org.antlr.v4", "com.sk89q.worldedit.antlr4")
+        relocate("net.royawesome.jlibnoise", "com.sk89q.worldedit.jlibnoise")
 
         include(dependency("org.antlr:antlr4-runtime"))
         include(dependency("org.mozilla:rhino-runtime"))
+        include(dependency("com.sk89q.lib:jlibnoise"))
     }
     minimize {
         exclude(dependency("org.mozilla:rhino-runtime"))

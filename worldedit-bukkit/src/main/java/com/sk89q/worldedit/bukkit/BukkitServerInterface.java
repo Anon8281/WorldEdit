@@ -38,6 +38,7 @@ import com.sk89q.worldedit.util.SideEffect;
 import com.sk89q.worldedit.util.lifecycle.Lifecycled;
 import com.sk89q.worldedit.world.DataFixer;
 import com.sk89q.worldedit.world.registry.Registries;
+import io.papermc.lib.PaperLib;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -239,6 +240,14 @@ public class BukkitServerInterface extends AbstractPlatform implements MultiUser
             return plugin.getBukkitImplAdapter().getSupportedSideEffects();
         }
         return SUPPORTED_SIDE_EFFECTS;
+    }
+
+    @Override
+    public long getTickCount() {
+        if (PaperLib.isPaper()) {
+            return Bukkit.getCurrentTick();
+        }
+        return super.getTickCount();
     }
 
     public void unregisterCommands() {
