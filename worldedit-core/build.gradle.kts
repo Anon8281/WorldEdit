@@ -48,7 +48,7 @@ dependencies {
     }
     "implementation"("com.thoughtworks.paranamer:paranamer:2.6")
     "implementation"("com.sk89q.lib:jlibnoise:1.0.0")
-    "implementation"("com.github.Anon8281:UniversalScheduler:0.1.3")
+    "implementation"("com.github.Anon8281:UniversalScheduler:0.1.6")
     "api"(platform("org.enginehub.lin-bus:lin-bus-bom:${Versions.LIN_BUS}"))
     "api"("org.enginehub.lin-bus:lin-bus-tree") {
         exclude(group = "org.jetbrains", module = "annotations")

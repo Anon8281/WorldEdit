@@ -11,6 +11,7 @@ applyShadowConfiguration()
 repositories {
     maven { url = uri("https://hub.spigotmc.org/nexus/content/groups/public") }
     maven { url = uri("https://repo.papermc.io/repository/maven-public/") }
+    maven { url = uri("https://jitpack.io") }
 }
 
 val localImplementation = configurations.create("localImplementation") {
@@ -60,6 +61,7 @@ dependencies {
     "compileOnly"("com.sk89q:dummypermscompat:1.10")
     "implementation"("org.bstats:bstats-bukkit:2.2.1")
     "implementation"("it.unimi.dsi:fastutil")
+    "implementation"("com.github.Anon8281:UniversalScheduler:0.1.6")
     "testImplementation"("org.mockito:mockito-core:1.9.0-rc1")
 
     project.project(":worldedit-bukkit:adapters").subprojects.forEach {
@@ -91,6 +93,7 @@ tasks.named<ShadowJar>("shadowJar") {
         include(dependency("io.papermc:paperlib"))
         include(dependency("it.unimi.dsi:fastutil"))
         include(dependency("com.sk89q.lib:jlibnoise"))
+        include(dependency("com.github.Anon8281:"))
 
         exclude(dependency("$group:$name"))
 
@@ -98,6 +101,7 @@ tasks.named<ShadowJar>("shadowJar") {
         relocate("io.papermc.lib", "com.sk89q.worldedit.bukkit.paperlib")
         relocate("it.unimi.dsi.fastutil", "com.sk89q.worldedit.bukkit.fastutil")
         relocate("net.royawesome.jlibnoise", "com.sk89q.worldedit.jlibnoise")
+        relocate("com.github.Anon8281.universalScheduler", "com.sk89q.worldedit.bukkit.universalScheduler")
     }
     project.project(":worldedit-bukkit:adapters").subprojects.forEach {
         dependencies {

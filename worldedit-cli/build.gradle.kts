@@ -32,6 +32,7 @@ dependencies {
     "implementation"("commons-cli:commons-cli:1.4")
     "implementation"("com.google.guava:guava")
     "implementation"("com.google.code.gson:gson")
+    "implementation"("com.github.Anon8281:UniversalScheduler:0.1.3")
 }
 
 tasks.named<ShadowJar>("shadowJar") {
